@@ -69,9 +69,9 @@ echo.
 echo [2/5] Copying application files...
 echo Repository documentation and issue templates are preserved.
 robocopy "%SOURCE_DIR%" "%STAGE_DIR%" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
-    /XD .git node_modules .next .nuxt .output dist build out coverage .cache .turbo .vercel .netlify vendor __pycache__ .venv venv playwright-report test-results ^
+    /XD .git .github docs .ssh .aws node_modules .next .nuxt .output dist build out coverage .cache .turbo .vercel .netlify vendor __pycache__ .venv venv playwright-report test-results ^
     /XF README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .editorconfig .gitattributes ^
-        .env .env.local .env.development .env.development.local .env.production .env.production.local .env.test .env.test.local ^
+        .env .env.* .env.local .env.development .env.development.local .env.production .env.production.local .env.test .env.test.local ^
         *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db id_rsa id_ed25519 credentials.json service-account.json
 if errorlevel 8 (
     echo [ERROR] Application copy failed.
@@ -82,7 +82,7 @@ rem Keep local application documentation without overwriting repository foundati
 if exist "%SOURCE_DIR%\docs\" (
     robocopy "%SOURCE_DIR%\docs" "%STAGE_DIR%\docs\application" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
         /XD .git node_modules .next dist build coverage .cache ^
-        /XF .env .env.local *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json
+        /XF .env .env.* .env.local *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json
     if errorlevel 8 goto :fail
 )
 
