@@ -1,128 +1,180 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title InsightOS - Publish desktop application to GitHub
+title InsightOS - GitHub Publisher
 
-rem Safely imports Desktop\insightos-app into the existing InsightOS repository.
-rem Uses a temporary clone: the source folder's Git history and remotes are untouched.
+rem Exact project identifiers: repository InsightOS; local folder insightos-app.
 set "REPO_URL=https://github.com/articwhisper895/InsightOS.git"
 set "REPO_WEB=https://github.com/articwhisper895/InsightOS"
-set "SOURCE_DIR=%USERPROFILE%\Desktop\insightos-app"
+set "LOG_FILE=%TEMP%\InsightOS-publish.log"
+set "FAILED=0"
+set "STAGE_DIR="
+
+>"%LOG_FILE%" echo InsightOS Publisher - %DATE% %TIME%
+>>"%LOG_FILE%" echo Repository: %REPO_URL%
+
+echo.
+echo  ================================================================
+echo   INSIGHTOS - WINDOWS GITHUB PUBLISHER
+echo  ================================================================
+echo.
+echo  Exact GitHub repository: articwhisper895/InsightOS
+echo  Exact desktop folder:   insightos-app
+echo  Diagnostic log:         %LOG_FILE%
+echo.
+
+set "SOURCE_DIR="
 if not "%~1"=="" set "SOURCE_DIR=%~1"
-if not exist "%SOURCE_DIR%\" if "%~1"=="" if exist "%USERPROFILE%\OneDrive\Desktop\insightos-app\" set "SOURCE_DIR=%USERPROFILE%\OneDrive\Desktop\insightos-app"
-for %%I in ("%SOURCE_DIR%") do set "SOURCE_DIR=%%~fI"
 
-echo.
-echo  ================================================================
-echo   InsightOS - Safe GitHub Publisher
-echo  ================================================================
-echo.
-echo  Source : %SOURCE_DIR%
-echo  Target : %REPO_WEB%
-echo.
+if defined SOURCE_DIR goto :source_selected
 
-if not exist "%SOURCE_DIR%\" (
-    echo [ERROR] Source folder not found.
-    echo Expected: %SOURCE_DIR%
-    echo You may also drag the folder onto this CMD file.
+echo [1/6] Locating the exact Desktop folder name...
+for /f "usebackq delims=" %%I in (\`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots = @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:USERPROFILE 'Desktop'), (Join-Path $env:USERPROFILE 'OneDrive\Desktop')); foreach ($root in $roots) { if (Test-Path -LiteralPath $root -PathType Container) { $candidate = Join-Path $root 'insightos-app'; if (Test-Path -LiteralPath $candidate -PathType Container) { $item = Get-Item -LiteralPath $candidate; if ($item.Name -ceq 'insightos-app') { $item.FullName; exit } } } }; 'NOT_FOUND'"\`) do set "SOURCE_DIR=%%I"
+if /i "%SOURCE_DIR%"=="NOT_FOUND" (
+    echo [ERROR] Exact folder name not found.
+    echo Expected: Desktop\insightos-app
+    echo Capitalization matters: use exactly insightos-app, all lowercase.
+    >>"%LOG_FILE%" echo ERROR: Exact Desktop folder Desktop\insightos-app not found.
+    set "SOURCE_DIR="
     goto :fail
 )
+
+:source_selected
+
+for %%I in ("%SOURCE_DIR%") do (
+    set "SOURCE_NAME=%%~nxI"
+    set "SOURCE_DIR=%%~fI"
+)
+if not "%SOURCE_NAME%"=="insightos-app" (
+    echo [ERROR] Folder-name capitalization does not match.
+    echo Found:    %SOURCE_NAME%
+    echo Required: insightos-app
+    >>"%LOG_FILE%" echo ERROR: Folder case mismatch. Found "%SOURCE_NAME%"; expected "insightos-app".
+    goto :fail
+)
+if not exist "%SOURCE_DIR%\" (
+    echo [ERROR] Folder does not exist: %SOURCE_DIR%
+    >>"%LOG_FILE%" echo ERROR: Source path missing: %SOURCE_DIR%
+    goto :fail
+)
+echo Source folder: %SOURCE_DIR%
+echo Source folder: %SOURCE_DIR%>>"%LOG_FILE%"
+
 where git >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Git for Windows is required: https://git-scm.com/download/win
+    echo [ERROR] Git for Windows is not installed or not on PATH.
+    echo Install it from https://git-scm.com/download/win and reopen this CMD.
+    >>"%LOG_FILE%" echo ERROR: git executable not found on PATH.
     goto :fail
 )
 git --version
-git ls-remote --exit-code --heads "%REPO_URL%" main >nul 2>&1
+git --version >>"%LOG_FILE%" 2>&1
+
+echo.
+echo [2/6] Checking the exact GitHub repository and main branch...
+git ls-remote --exit-code --heads "%REPO_URL%" refs/heads/main >>"%LOG_FILE%" 2>&1
 if errorlevel 1 (
-    echo [ERROR] Could not reach the repository's main branch.
+    echo [ERROR] Cannot access articwhisper895/InsightOS main.
+    echo Check internet access and GitHub sign-in, then run this CMD again.
     goto :fail
 )
 
 echo.
-echo   1. Create a review branch (recommended)
-echo   2. Push directly to main
+echo Select where to publish:
+echo   1. Review branch (recommended - opens a pull request comparison)
+echo   2. Directly to main
 set "PUBLISH_CHOICE="
-set /p "PUBLISH_CHOICE=Choose 1 or 2: "
-if not "%PUBLISH_CHOICE%"=="1" if not "%PUBLISH_CHOICE%"=="2" goto :fail
+set /p "PUBLISH_CHOICE=Type 1 or 2, then press Enter: "
+if not "%PUBLISH_CHOICE%"=="1" if not "%PUBLISH_CHOICE%"=="2" (
+    echo [ERROR] Choose exactly 1 or 2.
+    goto :fail
+)
 
 for /f %%T in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd-HHmmss" 2^>nul') do set "STAMP=%%T"
 if not defined STAMP set "STAMP=%RANDOM%-%RANDOM%"
 if "%PUBLISH_CHOICE%"=="1" (set "TARGET_BRANCH=application-import-%STAMP%") else (set "TARGET_BRANCH=main")
 set "STAGE_DIR=%TEMP%\InsightOS-publish-%STAMP%-%RANDOM%"
+echo Target branch: %TARGET_BRANCH%
+>>"%LOG_FILE%" echo Target branch: %TARGET_BRANCH%
 
 echo.
-echo [1/5] Cloning the current GitHub main branch...
-git clone --branch main --single-branch "%REPO_URL%" "%STAGE_DIR%"
-if errorlevel 1 goto :fail
+echo [3/6] Cloning the current repository into a temporary workspace...
+git clone --branch main --single-branch "%REPO_URL%" "%STAGE_DIR%" >>"%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    echo [ERROR] Git clone failed. The diagnostic log contains the Git output.
+    goto :fail
+)
 
 if "%PUBLISH_CHOICE%"=="1" (
     pushd "%STAGE_DIR%"
-    git switch -c "%TARGET_BRANCH%" origin/main
+    git switch -c "%TARGET_BRANCH%" origin/main >>"%LOG_FILE%" 2>&1
     if errorlevel 1 (
         popd
+        echo [ERROR] Could not create the review branch.
         goto :fail
     )
     popd
 )
 
 echo.
-echo [2/5] Copying application files...
-echo Repository documentation and issue templates are preserved.
+echo [4/6] Copying app files while preserving repository documentation...
+>>"%LOG_FILE%" echo Copying source files from %SOURCE_DIR%
 robocopy "%SOURCE_DIR%" "%STAGE_DIR%" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
     /XD .git .github docs .ssh .aws node_modules .next .nuxt .output dist build out coverage .cache .turbo .vercel .netlify vendor __pycache__ .venv venv playwright-report test-results ^
     /XF README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .editorconfig .gitattributes ^
         .env .env.* .env.local .env.development .env.development.local .env.production .env.production.local .env.test .env.test.local ^
-        *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db id_rsa id_ed25519 credentials.json service-account.json
+        *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db id_rsa id_ed25519 credentials.json service-account.json >>"%LOG_FILE%" 2>&1
 if errorlevel 8 (
-    echo [ERROR] Application copy failed.
+    echo [ERROR] Copying the application failed. See the log.
     goto :fail
 )
 
-rem Keep local application documentation without overwriting repository foundation docs.
+rem Keep app documentation separate from the repository's root documentation.
 if exist "%SOURCE_DIR%\docs\" (
     robocopy "%SOURCE_DIR%\docs" "%STAGE_DIR%\docs\application" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
         /XD .git node_modules .next dist build coverage .cache ^
-        /XF .env .env.* .env.local *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json
-    if errorlevel 8 goto :fail
+        /XF .env .env.* *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json >>"%LOG_FILE%" 2>&1
+    if errorlevel 8 goto :copyfail
 )
 
-rem Copy app-specific GitHub Actions workflows but preserve repository issue templates.
+rem Preserve the existing issue templates; copy only application workflows.
 if exist "%SOURCE_DIR%\.github\workflows\" (
     if not exist "%STAGE_DIR%\.github\workflows\" mkdir "%STAGE_DIR%\.github\workflows"
     robocopy "%SOURCE_DIR%\.github\workflows" "%STAGE_DIR%\.github\workflows" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
         /XD node_modules .cache ^
-        /XF .env *.pem *.key *.p12 *.pfx *.log credentials.json service-account.json
-    if errorlevel 8 goto :fail
+        /XF .env .env.* *.pem *.key *.p12 *.pfx *.log credentials.json service-account.json >>"%LOG_FILE%" 2>&1
+    if errorlevel 8 goto :copyfail
 )
 
 echo.
-echo [3/5] Staging changes...
+echo [5/6] Preparing and displaying the changes...
 pushd "%STAGE_DIR%"
-git add -A
+git add -A >>"%LOG_FILE%" 2>&1
 if errorlevel 1 (
     popd
+    echo [ERROR] git add failed.
     goto :fail
 )
 git diff --cached --quiet
 if not errorlevel 1 (
     popd
-    echo [INFO] No changes to publish.
-    if exist "%STAGE_DIR%\" rmdir /s /q "%STAGE_DIR%"
-    goto :finish
+    echo [INFO] No new changes were found. Nothing needed to be pushed.
+    >>"%LOG_FILE%" echo INFO: No staged changes.
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
 )
-
 echo.
-echo ---------------- Staged changes ----------------
+echo ---------------- STAGED FILES ----------------
 git status --short
 echo.
 git diff --cached --stat
-echo -------------------------------------------------
+git status --short >>"%LOG_FILE%" 2>&1
+git diff --cached --stat >>"%LOG_FILE%" 2>&1
+echo ------------------------------------------------
 echo.
-echo SECURITY REVIEW:
-echo - Common local environment files, private keys, logs, and databases were excluded.
-echo - Check staged filenames and source content for secrets or private data.
-echo - The script cannot detect credentials hard-coded inside ordinary source files.
-echo.
+echo SECURITY CHECK: inspect the staged files for API keys, passwords,
+echo private data, or assets you do not have permission to publish.
+echo Common .env files, private keys, local databases, and logs are excluded.
+echo The script cannot detect secrets hard-coded inside source files.
 
 set "AUTHOR_NAME="
 set "AUTHOR_EMAIL="
@@ -134,61 +186,78 @@ if not defined AUTHOR_NAME set /p "AUTHOR_NAME=Git commit author name: "
 if not defined AUTHOR_EMAIL set /p "AUTHOR_EMAIL=Git commit author email: "
 if not defined AUTHOR_NAME (
     popd
+    echo [ERROR] Git author name is required.
     goto :fail
 )
 if not defined AUTHOR_EMAIL (
     popd
+    echo [ERROR] Git author email is required.
     goto :fail
 )
 git config user.name "%AUTHOR_NAME%"
 git config user.email "%AUTHOR_EMAIL%"
 
 echo.
-echo Destination branch: %TARGET_BRANCH%
+echo Exact destination: articwhisper895/InsightOS - %TARGET_BRANCH%
 set "CONFIRM="
-set /p "CONFIRM=Publish these files? Type YES to continue: "
-if /I not "%CONFIRM%"=="YES" (
+set /p "CONFIRM=Type YES in capital letters to publish: "
+if not "%CONFIRM%"=="YES" (
     popd
     echo [CANCELLED] Nothing was pushed.
-    if exist "%STAGE_DIR%\" rmdir /s /q "%STAGE_DIR%"
-    goto :finish
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
 )
 
 echo.
-echo [4/5] Creating commit...
-git commit -m "feat: import InsightOS application source"
+echo [6/6] Committing and pushing to GitHub...
+git commit -m "feat: import InsightOS application source" >>"%LOG_FILE%" 2>&1
 if errorlevel 1 (
     popd
+    echo [ERROR] Git commit failed. See the diagnostic log.
     goto :fail
 )
-
-echo.
-echo [5/5] Pushing to GitHub...
-git push -u origin "%TARGET_BRANCH%"
+git push -u origin "%TARGET_BRANCH%" >>"%LOG_FILE%" 2>&1
 if errorlevel 1 (
     popd
-    echo [ERROR] Push failed. Sign in through Git Credential Manager and retry.
+    echo [ERROR] Git push failed. Check GitHub authentication and branch permissions.
     goto :fail
 )
 popd
-
 if "%PUBLISH_CHOICE%"=="1" (
-    echo [SUCCESS] Uploaded to branch %TARGET_BRANCH%.
+    echo [SUCCESS] App uploaded to review branch: %TARGET_BRANCH%
     start "" "%REPO_WEB%/compare/main...%TARGET_BRANCH%?expand=1"
 ) else (
-    echo [SUCCESS] Updated the main branch.
+    echo [SUCCESS] App uploaded directly to main.
     start "" "%REPO_WEB%"
 )
-if exist "%STAGE_DIR%\" rmdir /s /q "%STAGE_DIR%"
-echo Your original Desktop\insightos-app folder and its Git history were not modified.
-goto :finish
+rmdir /s /q "%STAGE_DIR%"
+goto :success
+
+:copyfail
+echo [ERROR] A copy operation failed. See the diagnostic log.
+goto :fail
 
 :fail
 echo.
-echo [FAILED] No destructive changes were made to your source folder.
-if defined STAGE_DIR if exist "%STAGE_DIR%\" echo Temporary workspace retained: %STAGE_DIR%
+echo [FAILED] The publisher stopped. Your original application folder was not modified.
+echo Diagnostic log: %LOG_FILE%
+>>"%LOG_FILE%" echo Publisher stopped with an error.
+if exist "%LOG_FILE%" (
+    echo.
+    echo ---------------- DIAGNOSTIC LOG ----------------
+    type "%LOG_FILE%"
+    echo -------------------------------------------------
+)
+set "FAILED=1"
+goto :end
 
-:finish
+:success
+echo.
+echo [DONE] Publisher finished.
+echo Diagnostic log: %LOG_FILE%
+goto :end
+
+:end
 echo.
 pause
-endlocal
+exit /b %FAILED%
