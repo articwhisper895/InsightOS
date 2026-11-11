@@ -79,6 +79,10 @@ Once the application source is connected, complete [the development guide](docs/
 - [Contributing](CONTRIBUTING.md) — issues, pull requests, code quality, and review expectations.
 - [Security policy](SECURITY.md) — responsible vulnerability reporting.
 
+## Publishing from Windows
+
+A Windows CMD publisher is available at [`scripts/push-insightos-to-github.cmd`](scripts/push-insightos-to-github.cmd). It imports the application from `%USERPROFILE%\\Desktop\\insightos-app` into a temporary clone, preserves this repository's starter documentation, and offers either a review branch or a direct update to `main`. Read [the Windows publishing guide](docs/PUBLISHING_FROM_WINDOWS.md) before running it.
+
 ## Contributing
 
 Focused contributions are welcome once the application source and contribution workflow are in place. Please read [CONTRIBUTING.md](CONTRIBUTING.md), use the issue templates, and include tests or evidence for behaviour changes.
