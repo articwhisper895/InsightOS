@@ -131,7 +131,7 @@ if errorlevel 8 (
 rem Keep app documentation separate from the repository's root documentation.
 if exist "%SOURCE_DIR%\docs\" (
     robocopy "%SOURCE_DIR%\docs" "%STAGE_DIR%\docs\application" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
-        /XD .git node_modules .next dist build coverage .cache ^
+        /XD .git .wrangler .freebuff node_modules .next dist build coverage .cache ^
         /XF .env .env.* .dev.vars *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json >>"%LOG_FILE%" 2>&1
     if errorlevel 8 goto :copyfail
 )
@@ -140,7 +140,7 @@ rem Preserve the existing issue templates; copy only application workflows.
 if exist "%SOURCE_DIR%\.github\workflows\" (
     if not exist "%STAGE_DIR%\.github\workflows\" mkdir "%STAGE_DIR%\.github\workflows"
     robocopy "%SOURCE_DIR%\.github\workflows" "%STAGE_DIR%\.github\workflows" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
-        /XD node_modules .cache ^
+        /XD .wrangler .freebuff node_modules .cache ^
         /XF .env .env.* .dev.vars *.pem *.key *.p12 *.pfx *.log credentials.json service-account.json >>"%LOG_FILE%" 2>&1
     if errorlevel 8 goto :copyfail
 )
@@ -173,7 +173,8 @@ echo ------------------------------------------------
 echo.
 echo SECURITY CHECK: inspect the staged files for API keys, passwords,
 echo private data, or assets you do not have permission to publish.
-echo Common .env files, private keys, local databases, and logs are excluded.
+echo .env and .dev.vars secrets, .wrangler and .freebuff state, private keys,
+echo local databases, dependency folders, and build output are excluded.
 echo The script cannot detect secrets hard-coded inside source files.
 
 set "AUTHOR_NAME="
