@@ -81,7 +81,7 @@ Once the application source is connected, complete [the development guide](docs/
 
 ## Publishing from Windows
 
-A Windows CMD publisher is available at [`scripts/push-insightos-to-github.cmd`](scripts/push-insightos-to-github.cmd). It imports the application from `%USERPROFILE%\\Desktop\\insightos-app` into a temporary clone, preserves this repository's starter documentation, and offers either a review branch or a direct update to `main`. Read [the Windows publishing guide](docs/PUBLISHING_FROM_WINDOWS.md) before running it.
+A Windows CMD publisher is available at [`scripts/push-insightos-to-github.cmd`](scripts/push-insightos-to-github.cmd). It imports the application from `%USERPROFILE%\\Desktop\\InsightOS-App` into a temporary clone, preserves this repository's starter documentation, and offers either a review branch or a direct update to `main`. Read [the Windows publishing guide](docs/PUBLISHING_FROM_WINDOWS.md) before running it.
 
 ## Contributing
 
