@@ -32,7 +32,7 @@ for /f "usebackq delims=" %%I in (\`powershell -NoProfile -ExecutionPolicy Bypas
 if /i "%SOURCE_DIR%"=="NOT_FOUND" (
     echo [ERROR] Exact folder name not found.
     echo Expected: Desktop\InsightOS-App
-    echo Capitalization matters: use exactly InsightOS-App, all lowercase.
+    echo Capitalization matters: use exactly InsightOS-App, including capitals.
     >>"%LOG_FILE%" echo ERROR: Exact Desktop folder Desktop\InsightOS-App not found.
     set "SOURCE_DIR="
     goto :fail
@@ -154,6 +154,235 @@ if errorlevel 1 (
     echo [ERROR] git add failed.
     goto :fail
 )
+
+rem Final staged-path guard: block common secret files and generated local state.
+set "STAGED_LIST=%STAGE_DIR%\_insightos-staged-paths.txt"
+git diff --cached --name-only > "%STAGED_LIST%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bad = Get-Content -LiteralPath $env:STAGED_LIST | Where-Object { $_ -match '(^|/)(\.dev\.vars(?:\.[^/]*)?|\.env(?:\.[^/]*)?|\.wrangler|\.freebuff)(/|$)' -or $_ -match '\.(pem|key|p12|pfx|sqlite|sqlite3|db)
+if not errorlevel 1 (
+    popd
+    echo [INFO] No new changes were found. Nothing needed to be pushed.
+    >>"%LOG_FILE%" echo INFO: No staged changes.
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
+)
+echo.
+echo ---------------- STAGED FILES ----------------
+git status --short
+echo.
+git diff --cached --stat
+git status --short >>"%LOG_FILE%" 2>&1
+git diff --cached --stat >>"%LOG_FILE%" 2>&1
+echo ------------------------------------------------
+echo.
+echo SECURITY CHECK: inspect the staged files for API keys, passwords,
+echo private data, or assets you do not have permission to publish.
+echo .env and .dev.vars secrets, .wrangler and .freebuff state, private keys,
+echo local databases, dependency folders, and build output are excluded.
+echo The script cannot detect secrets hard-coded inside source files.
+
+set "AUTHOR_NAME="
+set "AUTHOR_EMAIL="
+for /f "delims=" %%A in ('git -C "%SOURCE_DIR%" config user.name 2^>nul') do set "AUTHOR_NAME=%%A"
+for /f "delims=" %%A in ('git -C "%SOURCE_DIR%" config user.email 2^>nul') do set "AUTHOR_EMAIL=%%A"
+if not defined AUTHOR_NAME for /f "delims=" %%A in ('git config --global user.name 2^>nul') do set "AUTHOR_NAME=%%A"
+if not defined AUTHOR_EMAIL for /f "delims=" %%A in ('git config --global user.email 2^>nul') do set "AUTHOR_EMAIL=%%A"
+if not defined AUTHOR_NAME set /p "AUTHOR_NAME=Git commit author name: "
+if not defined AUTHOR_EMAIL set /p "AUTHOR_EMAIL=Git commit author email: "
+if not defined AUTHOR_NAME (
+    popd
+    echo [ERROR] Git author name is required.
+    goto :fail
+)
+if not defined AUTHOR_EMAIL (
+    popd
+    echo [ERROR] Git author email is required.
+    goto :fail
+)
+git config user.name "%AUTHOR_NAME%"
+git config user.email "%AUTHOR_EMAIL%"
+
+echo.
+echo Exact destination: articwhisper895/InsightOS - %TARGET_BRANCH%
+set "CONFIRM="
+set /p "CONFIRM=Type YES in capital letters to publish: "
+if not "%CONFIRM%"=="YES" (
+    popd
+    echo [CANCELLED] Nothing was pushed.
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
+)
+
+echo.
+echo [6/6] Committing and pushing to GitHub...
+git commit -m "feat: import InsightOS application source" >>"%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    popd
+    echo [ERROR] Git commit failed. See the diagnostic log.
+    goto :fail
+)
+git push -u origin "%TARGET_BRANCH%" >>"%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    popd
+    echo [ERROR] Git push failed. Check GitHub authentication and branch permissions.
+    goto :fail
+)
+popd
+if "%PUBLISH_CHOICE%"=="1" (
+    echo [SUCCESS] App uploaded to review branch: %TARGET_BRANCH%
+    start "" "%REPO_WEB%/compare/main...%TARGET_BRANCH%?expand=1"
+) else (
+    echo [SUCCESS] App uploaded directly to main.
+    start "" "%REPO_WEB%"
+)
+rmdir /s /q "%STAGE_DIR%"
+goto :success
+
+:copyfail
+echo [ERROR] A copy operation failed. See the diagnostic log.
+goto :fail
+
+:fail
+echo.
+echo [FAILED] The publisher stopped. Your original application folder was not modified.
+echo Diagnostic log: %LOG_FILE%
+>>"%LOG_FILE%" echo Publisher stopped with an error.
+if exist "%LOG_FILE%" (
+    echo.
+    echo ---------------- DIAGNOSTIC LOG ----------------
+    type "%LOG_FILE%"
+    echo -------------------------------------------------
+)
+set "FAILED=1"
+goto :end
+
+:success
+echo.
+echo [DONE] Publisher finished.
+echo Diagnostic log: %LOG_FILE%
+goto :end
+
+:end
+echo.
+pause
+exit /b %FAILED%
+ -or $_ -match '(^|/)(id_rsa|id_ed25519|credentials\.json|service-account\.json)
+if not errorlevel 1 (
+    popd
+    echo [INFO] No new changes were found. Nothing needed to be pushed.
+    >>"%LOG_FILE%" echo INFO: No staged changes.
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
+)
+echo.
+echo ---------------- STAGED FILES ----------------
+git status --short
+echo.
+git diff --cached --stat
+git status --short >>"%LOG_FILE%" 2>&1
+git diff --cached --stat >>"%LOG_FILE%" 2>&1
+echo ------------------------------------------------
+echo.
+echo SECURITY CHECK: inspect the staged files for API keys, passwords,
+echo private data, or assets you do not have permission to publish.
+echo .env and .dev.vars secrets, .wrangler and .freebuff state, private keys,
+echo local databases, dependency folders, and build output are excluded.
+echo The script cannot detect secrets hard-coded inside source files.
+
+set "AUTHOR_NAME="
+set "AUTHOR_EMAIL="
+for /f "delims=" %%A in ('git -C "%SOURCE_DIR%" config user.name 2^>nul') do set "AUTHOR_NAME=%%A"
+for /f "delims=" %%A in ('git -C "%SOURCE_DIR%" config user.email 2^>nul') do set "AUTHOR_EMAIL=%%A"
+if not defined AUTHOR_NAME for /f "delims=" %%A in ('git config --global user.name 2^>nul') do set "AUTHOR_NAME=%%A"
+if not defined AUTHOR_EMAIL for /f "delims=" %%A in ('git config --global user.email 2^>nul') do set "AUTHOR_EMAIL=%%A"
+if not defined AUTHOR_NAME set /p "AUTHOR_NAME=Git commit author name: "
+if not defined AUTHOR_EMAIL set /p "AUTHOR_EMAIL=Git commit author email: "
+if not defined AUTHOR_NAME (
+    popd
+    echo [ERROR] Git author name is required.
+    goto :fail
+)
+if not defined AUTHOR_EMAIL (
+    popd
+    echo [ERROR] Git author email is required.
+    goto :fail
+)
+git config user.name "%AUTHOR_NAME%"
+git config user.email "%AUTHOR_EMAIL%"
+
+echo.
+echo Exact destination: articwhisper895/InsightOS - %TARGET_BRANCH%
+set "CONFIRM="
+set /p "CONFIRM=Type YES in capital letters to publish: "
+if not "%CONFIRM%"=="YES" (
+    popd
+    echo [CANCELLED] Nothing was pushed.
+    rmdir /s /q "%STAGE_DIR%"
+    goto :success
+)
+
+echo.
+echo [6/6] Committing and pushing to GitHub...
+git commit -m "feat: import InsightOS application source" >>"%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    popd
+    echo [ERROR] Git commit failed. See the diagnostic log.
+    goto :fail
+)
+git push -u origin "%TARGET_BRANCH%" >>"%LOG_FILE%" 2>&1
+if errorlevel 1 (
+    popd
+    echo [ERROR] Git push failed. Check GitHub authentication and branch permissions.
+    goto :fail
+)
+popd
+if "%PUBLISH_CHOICE%"=="1" (
+    echo [SUCCESS] App uploaded to review branch: %TARGET_BRANCH%
+    start "" "%REPO_WEB%/compare/main...%TARGET_BRANCH%?expand=1"
+) else (
+    echo [SUCCESS] App uploaded directly to main.
+    start "" "%REPO_WEB%"
+)
+rmdir /s /q "%STAGE_DIR%"
+goto :success
+
+:copyfail
+echo [ERROR] A copy operation failed. See the diagnostic log.
+goto :fail
+
+:fail
+echo.
+echo [FAILED] The publisher stopped. Your original application folder was not modified.
+echo Diagnostic log: %LOG_FILE%
+>>"%LOG_FILE%" echo Publisher stopped with an error.
+if exist "%LOG_FILE%" (
+    echo.
+    echo ---------------- DIAGNOSTIC LOG ----------------
+    type "%LOG_FILE%"
+    echo -------------------------------------------------
+)
+set "FAILED=1"
+goto :end
+
+:success
+echo.
+echo [DONE] Publisher finished.
+echo Diagnostic log: %LOG_FILE%
+goto :end
+
+:end
+echo.
+pause
+exit /b %FAILED%
+ }; if ($bad) { Write-Output 'Blocked sensitive or local-only paths:'; $bad | ForEach-Object { Write-Output $_ }; exit 1 }"
+if errorlevel 1 (
+    del "%STAGED_LIST%" >nul 2>&1
+    popd
+    echo [ERROR] Sensitive or local-only files are staged. Nothing was committed or pushed.
+    goto :fail
+)
+del "%STAGED_LIST%" >nul 2>&1
+
 git diff --cached --quiet
 if not errorlevel 1 (
     popd
