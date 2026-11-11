@@ -3,15 +3,15 @@
 The exact project names are important:
 
 - GitHub repository: articwhisper895/InsightOS (capital I, O, S).
-- Desktop source folder: insightos-app (all lowercase).
+- Desktop source folder: InsightOS-App (all lowercase).
 
-The CMD publisher is scripts/push-insightos-to-github.cmd. It automatically searches the Windows Desktop and OneDrive Desktop for a folder whose name matches insightos-app exactly. A folder with different capitalization is rejected with a clear message. You may also drag the exact folder onto the CMD file to pass its path.
+The CMD publisher is scripts/push-insightos-to-github.cmd. It automatically searches the Windows Desktop and OneDrive Desktop for a folder whose name matches InsightOS-App exactly. A folder with different capitalization is rejected with a clear message. You may also drag the exact folder onto the CMD file to pass its path.
 
 ## Requirements
 
 1. Install Git for Windows.
 2. Sign in to GitHub through Git Credential Manager.
-3. Make sure the source directory is exactly Desktop\insightos-app.
+3. Make sure the source directory is exactly Desktop\InsightOS-App.
 
 ## Run
 
