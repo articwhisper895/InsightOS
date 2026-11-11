@@ -119,9 +119,9 @@ echo.
 echo [4/6] Copying app files while preserving repository documentation...
 >>"%LOG_FILE%" echo Copying source files from %SOURCE_DIR%
 robocopy "%SOURCE_DIR%" "%STAGE_DIR%" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
-    /XD .git .github docs .ssh .aws node_modules .next .nuxt .output dist build out coverage .cache .turbo .vercel .netlify vendor __pycache__ .venv venv playwright-report test-results ^
+    /XD .git .github docs .ssh .aws .wrangler .freebuff node_modules .next .nuxt .output dist build out coverage .cache .turbo .vercel .netlify vendor __pycache__ .venv venv playwright-report test-results ^
     /XF README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md .gitignore .editorconfig .gitattributes ^
-        .env .env.* .env.local .env.development .env.development.local .env.production .env.production.local .env.test .env.test.local ^
+        .env .env.* .dev.vars .env.local .env.development .env.development.local .env.production .env.production.local .env.test .env.test.local ^
         *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db id_rsa id_ed25519 credentials.json service-account.json >>"%LOG_FILE%" 2>&1
 if errorlevel 8 (
     echo [ERROR] Copying the application failed. See the log.
@@ -132,7 +132,7 @@ rem Keep app documentation separate from the repository's root documentation.
 if exist "%SOURCE_DIR%\docs\" (
     robocopy "%SOURCE_DIR%\docs" "%STAGE_DIR%\docs\application" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
         /XD .git node_modules .next dist build coverage .cache ^
-        /XF .env .env.* *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json >>"%LOG_FILE%" 2>&1
+        /XF .env .env.* .dev.vars *.pem *.key *.p12 *.pfx *.log *.sqlite *.sqlite3 *.db credentials.json service-account.json >>"%LOG_FILE%" 2>&1
     if errorlevel 8 goto :copyfail
 )
 
@@ -141,7 +141,7 @@ if exist "%SOURCE_DIR%\.github\workflows\" (
     if not exist "%STAGE_DIR%\.github\workflows\" mkdir "%STAGE_DIR%\.github\workflows"
     robocopy "%SOURCE_DIR%\.github\workflows" "%STAGE_DIR%\.github\workflows" /E /COPY:DAT /DCOPY:DAT /R:1 /W:1 /XJ /NP /NFL /NDL ^
         /XD node_modules .cache ^
-        /XF .env .env.* *.pem *.key *.p12 *.pfx *.log credentials.json service-account.json >>"%LOG_FILE%" 2>&1
+        /XF .env .env.* .dev.vars *.pem *.key *.p12 *.pfx *.log credentials.json service-account.json >>"%LOG_FILE%" 2>&1
     if errorlevel 8 goto :copyfail
 )
 
