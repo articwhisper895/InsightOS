@@ -1,20 +1,28 @@
 # Publishing from Windows
 
-The repository includes `scripts/push-insightos-to-github.cmd`, a Windows CMD publisher for the local `Desktop\insightos-app` folder.
+The exact project names are important:
 
-## Use
+- GitHub repository: articwhisper895/InsightOS (capital I, O, S).
+- Desktop source folder: insightos-app (all lowercase).
 
-1. Install Git for Windows and sign in to GitHub through Git Credential Manager.
-2. Download or copy the CMD file into a convenient location.
-3. Double-click it, or run it from Command Prompt. The default source is `%USERPROFILE%\Desktop\insightos-app`.
-4. You can also pass a different source path as the first argument.
-5. Choose a review branch (recommended) or a direct update to `main`.
-6. Inspect the staged file list carefully. Type `YES` only when you are satisfied.
+The CMD publisher is scripts/push-insightos-to-github.cmd. It automatically searches the Windows Desktop and OneDrive Desktop for a folder whose name matches insightos-app exactly. A folder with different capitalization is rejected with a clear message. You may also drag the exact folder onto the CMD file to pass its path.
 
-The script clones the current repository into a temporary workspace, overlays the local application files, and commits from the repository's existing history. This avoids unrelated-history push failures and leaves the original project folder, its Git history, and its remotes untouched.
+## Requirements
 
-The following are deliberately not copied: Git metadata, dependency folders, common build outputs, local environment files, common private-key formats, logs, and local database files. Existing repository governance files and documentation are preserved; local application docs are placed under `docs/application/`, and local GitHub Actions workflows are copied into `.github/workflows/`.
+1. Install Git for Windows.
+2. Sign in to GitHub through Git Credential Manager.
+3. Make sure the source directory is exactly Desktop\insightos-app.
 
-This is a convenience tool, not a secret scanner. Review staged paths and source content for API keys, credentials, personal data, and assets you do not have permission to publish before confirming.
+## Run
 
-The review-branch option opens a GitHub comparison page so you can inspect the application import and create a pull request. The direct-to-main option updates the default branch immediately and may be blocked by branch protection rules.
+1. Download scripts/push-insightos-to-github.cmd from this repository.
+2. Double-click it.
+3. Choose a review branch (recommended) or a direct update to main.
+4. Review the staged files and type YES in capital letters to publish.
+5. For a review branch, inspect the comparison page and create a pull request.
+
+The publisher clones the current GitHub main into a temporary workspace, then overlays the local application files. It preserves the repository's root documentation and GitHub issue templates, places app documentation under docs/application/, and copies app GitHub workflows into .github/workflows/. It does not modify the source folder or its Git history.
+
+Common local environment files, private-key formats, dependency folders, build output, databases, and logs are excluded. This is not a secret scanner: inspect staged changes for hard-coded credentials, personal data, and assets you do not have permission to publish.
+
+A diagnostic log is written to %TEMP%\InsightOS-publish.log. If a run fails, the script displays the log before exiting.
