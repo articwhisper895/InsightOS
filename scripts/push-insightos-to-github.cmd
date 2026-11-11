@@ -2,7 +2,7 @@
 setlocal EnableExtensions DisableDelayedExpansion
 title InsightOS - GitHub Publisher
 
-rem Exact project identifiers: repository InsightOS; local folder insightos-app.
+rem Exact project identifiers: repository InsightOS; local folder InsightOS-App.
 set "REPO_URL=https://github.com/articwhisper895/InsightOS.git"
 set "REPO_WEB=https://github.com/articwhisper895/InsightOS"
 set "LOG_FILE=%TEMP%\InsightOS-publish.log"
@@ -18,7 +18,7 @@ echo   INSIGHTOS - WINDOWS GITHUB PUBLISHER
 echo  ================================================================
 echo.
 echo  Exact GitHub repository: articwhisper895/InsightOS
-echo  Exact desktop folder:   insightos-app
+echo  Exact desktop folder:   InsightOS-App
 echo  Diagnostic log:         %LOG_FILE%
 echo.
 
@@ -28,12 +28,12 @@ if not "%~1"=="" set "SOURCE_DIR=%~1"
 if defined SOURCE_DIR goto :source_selected
 
 echo [1/6] Locating the exact Desktop folder name...
-for /f "usebackq delims=" %%I in (\`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots = @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:USERPROFILE 'Desktop'), (Join-Path $env:USERPROFILE 'OneDrive\Desktop')); foreach ($root in $roots) { if (Test-Path -LiteralPath $root -PathType Container) { $candidate = Join-Path $root 'insightos-app'; if (Test-Path -LiteralPath $candidate -PathType Container) { $item = Get-Item -LiteralPath $candidate; if ($item.Name -ceq 'insightos-app') { $item.FullName; exit } } } }; 'NOT_FOUND'"\`) do set "SOURCE_DIR=%%I"
+for /f "usebackq delims=" %%I in (\`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots = @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:USERPROFILE 'Desktop'), (Join-Path $env:USERPROFILE 'OneDrive\Desktop')); foreach ($root in $roots) { if (Test-Path -LiteralPath $root -PathType Container) { $candidate = Join-Path $root 'InsightOS-App'; if (Test-Path -LiteralPath $candidate -PathType Container) { $item = Get-Item -LiteralPath $candidate; if ($item.Name -ceq 'InsightOS-App') { $item.FullName; exit } } } }; 'NOT_FOUND'"\`) do set "SOURCE_DIR=%%I"
 if /i "%SOURCE_DIR%"=="NOT_FOUND" (
     echo [ERROR] Exact folder name not found.
-    echo Expected: Desktop\insightos-app
-    echo Capitalization matters: use exactly insightos-app, all lowercase.
-    >>"%LOG_FILE%" echo ERROR: Exact Desktop folder Desktop\insightos-app not found.
+    echo Expected: Desktop\InsightOS-App
+    echo Capitalization matters: use exactly InsightOS-App, all lowercase.
+    >>"%LOG_FILE%" echo ERROR: Exact Desktop folder Desktop\InsightOS-App not found.
     set "SOURCE_DIR="
     goto :fail
 )
@@ -44,11 +44,11 @@ for %%I in ("%SOURCE_DIR%") do (
     set "SOURCE_NAME=%%~nxI"
     set "SOURCE_DIR=%%~fI"
 )
-if not "%SOURCE_NAME%"=="insightos-app" (
+if not "%SOURCE_NAME%"=="InsightOS-App" (
     echo [ERROR] Folder-name capitalization does not match.
     echo Found:    %SOURCE_NAME%
-    echo Required: insightos-app
-    >>"%LOG_FILE%" echo ERROR: Folder case mismatch. Found "%SOURCE_NAME%"; expected "insightos-app".
+    echo Required: InsightOS-App
+    >>"%LOG_FILE%" echo ERROR: Folder case mismatch. Found "%SOURCE_NAME%"; expected "InsightOS-App".
     goto :fail
 )
 if not exist "%SOURCE_DIR%\" (
